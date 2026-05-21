@@ -1,0 +1,17 @@
+import express, { Router } from "express";
+import { register, login, getProfile, refreshToken } from "../controllers/auth.controller.js";
+import { verifyToken, authorizedRoles } from "../middleware/auth.middleware.js";
+
+const router = express.Router();
+
+router.post("/login", login);
+router.post("refresh", refreshToken);
+
+// Only admin/sub-admin can create users
+router.post("/register", verifyToken, authorizedRoles("admin", "sub-admin"), register);
+// router.post("/register", register);
+
+// Get Profile
+router.get("/profile", verifyToken, getProfile);
+
+export default router;
