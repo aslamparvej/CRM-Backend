@@ -20,5 +20,5 @@ app.use("/api/users", userRoutes);
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, ()=>{
     connectDB();
-    console.log(`Server running on PORT: ${PORT}`);
+    console.log(`Server running on PORT: ${PORT} and connected to DB on ${process.env.NODE_ENV} mode`);
 })
