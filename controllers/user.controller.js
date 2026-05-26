@@ -7,6 +7,7 @@ export const createUser = async (req, res) => {
     const { name, email, password, role, agentType } = req.body;
 
     console.log(req.body);
+    console.log("Creating user with role:", role, "and agentType:", agentType);
 
     // Check existing user
     const existingUser = await User.findOne({ email });
@@ -63,7 +64,9 @@ export const createUser = async (req, res) => {
 // Get all users
 export const getUsers = async (req, res) => {
   try {
-    let filter = {};
+    let filter = {
+      _id: { $ne: req.user.id }, // exclude logged-in user
+    };
 
     // Sub-admin sees only created agents
     if (req.user.role === "sub-admin") {
@@ -81,6 +84,29 @@ export const getUsers = async (req, res) => {
       message: "Users fetched successfully",
       count: users.length,
       data: users,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const getUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select("-password");
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: user,
     });
   } catch (error) {
     res.status(500).json({
