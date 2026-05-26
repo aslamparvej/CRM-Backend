@@ -1,6 +1,6 @@
 import express from "express";
 
-import { createUser, getUsers } from "../controllers/user.controller.js";
+import { createUser, getUsers, getUser } from "../controllers/user.controller.js";
 import { verifyToken, authorizedRoles } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
@@ -12,5 +12,10 @@ router.post(
   createUser,
 );
 router.get("/", verifyToken, authorizedRoles("admin", "sub-admin"), getUsers);
-
+router.get(
+  "/:id",
+  verifyToken,
+  authorizedRoles("admin", "sub-admin"),
+  getUser
+);
 export default router;
