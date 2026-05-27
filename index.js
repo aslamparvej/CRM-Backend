@@ -3,9 +3,10 @@ import dotenv from "dotenv";
 import cors from "cors";
 import connectDB from "./config/db.js";
 
-import authRoutes from "./routes/auth.route.js";
-import userRoutes from "./routes/user.route.js";
+import authRoutes from "./routes/auth.routes.js";
+import userRoutes from "./routes/user.routes.js";
 import leadRoutes from "./routes/lead.routes.js";
+import followUpRoutes from "./routes/followup.routes.js";
 
 dotenv.config();
 const app = express();
@@ -19,6 +20,7 @@ app.get("/", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/leads", leadRoutes);
+app.use("/api/followups", followUpRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
