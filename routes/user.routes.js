@@ -1,6 +1,14 @@
 import express from "express";
 
-import { createUser, getUsers, getUser } from "../controllers/user.controller.js";
+import {
+  createUser,
+  getUsers,
+  getUser,
+  getAgents,
+  updateUser,
+  toggleUserStatus,
+  deleteUser
+} from "../controllers/user.controller.js";
 import { verifyToken, authorizedRoles } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
@@ -12,10 +20,15 @@ router.post(
   createUser,
 );
 router.get("/", verifyToken, authorizedRoles("admin", "sub-admin"), getUsers);
+router.get("/:id", verifyToken, authorizedRoles("admin", "sub-admin"), getUser);
 router.get(
-  "/:id",
+  "/agents/list",
   verifyToken,
   authorizedRoles("admin", "sub-admin"),
-  getUser
+  getAgents,
 );
+router.put("/:id", verifyToken, authorizedRoles("admin", "sub-admin"), updateUser);
+router.delete("/:id", verifyToken, authorizedRoles("admin"), toggleUserStatus);
+router.delete("/:id", verifyToken, authorizedRoles("admin"), deleteUser);
+
 export default router;
