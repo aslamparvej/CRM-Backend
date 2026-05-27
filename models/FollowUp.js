@@ -13,6 +13,10 @@ const followUpSchema = new mongoose.Schema(
       required: true,
     },
 
+    note: {
+      type: String,
+    },
+
     status: {
       type: String,
       enum: ["pending", "done"],
@@ -26,5 +30,8 @@ const followUpSchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
+
+followUpSchema.index({ followUpDate: 1 });
+followUpSchema.index({ status: 1 });
 
 export default mongoose.model("FollowUp", followUpSchema);
