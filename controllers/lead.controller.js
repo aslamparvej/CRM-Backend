@@ -1,7 +1,7 @@
-import Lead from "../models/Lead";
-import Note from "../models/Note";
-import LeadHistory from "../models/LeadHistory";
-import { buildFilterQuery } from "../services/lead.service";
+import Lead from "../models/Lead.js";
+import Note from "../models/Note.js";
+import LeadHistory from "../models/LeadHistory.js";
+import { buildFilterQuery } from "../services/lead.service.js";
 
 // Create Lead
 export const createLead = async (req, res) => {

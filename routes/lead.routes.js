@@ -8,8 +8,8 @@ import {
   assignLead,
   addNote,
   getLeadHistory,
-} from "../controllers/lead.controller";
-import { verifyToken } from "../middleware/auth.middleware";
+} from "../controllers/lead.controller.js";
+import { verifyToken } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 

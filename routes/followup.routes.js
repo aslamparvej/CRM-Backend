@@ -3,9 +3,9 @@ import {
   createFollowUp,
   getFollowUps,
   markFollowUpDone,
-} from "../controllers/followup.controller";
+} from "../controllers/followup.controller.js";
 
-import { verifyToken } from "../middleware/auth.middleware";
+import { verifyToken } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 

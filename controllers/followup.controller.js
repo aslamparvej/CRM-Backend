@@ -1,4 +1,4 @@
-import FollowUp from "../models/FollowUp";
+import FollowUp from "../models/FollowUp.js";
 
 // Create Follow Up
 export const createFollowUp = async (req, res) => {

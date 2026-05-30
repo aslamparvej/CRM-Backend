@@ -1,4 +1,4 @@
-import Lead from "../models/Lead";
+import Lead from "../models/Lead.js";
 
 export const buildFilterQuery = (query, user) => {
   const { status, category, assignedTo, fromDate, toDate, search } = query;
