@@ -7,9 +7,6 @@ export const createUser = async (req, res) => {
   try {
     const { name, email, password, role, agentType } = req.body;
 
-    console.log(req.body);
-    console.log("Creating user with role:", role, "and agentType:", agentType);
-
     // Check existing user
     const existingUser = await User.findOne({ email });
     if (existingUser) {
