@@ -3,15 +3,24 @@ import mongoose from "mongoose";
 const leadSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
+    email: { type: String, required: true },
     phone: { type: String, required: true },
+    alternatePhone: { type: String },
+    address: { type: String },
 
-    category: { type: String },
     status: { type: String, default: "New" },
+    priority: { type: String, default: "medium" },
+    category: { type: String, default: "General" },
+    source: { type: String, default: "manual" },
+
+    notes: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Note",
+    },
 
     assignedTo: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
     },
 
     createdBy: {
