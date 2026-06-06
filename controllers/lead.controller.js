@@ -6,6 +6,7 @@ import { buildFilterQuery } from "../services/lead.service.js";
 // Create Lead
 export const createLead = async (req, res) => {
   try {
+    console.log("Creating lead with data:", req.body);
     const lead = await Lead.create({
       ...req.body,
       createdBy: req.user.id,
@@ -18,12 +19,15 @@ export const createLead = async (req, res) => {
       changedBy: req.user.id,
     });
 
+    console.log("Lead created successfully:", lead);
+
     res.status(201).json({
       success: true,
       message: "Lead Created",
       data: lead,
     });
   } catch (error) {
+    console.error("Error when creating lead:", error);
     res.status(500).json({
       success: false,
       message: error.message || "Error when creating lead",
@@ -35,6 +39,7 @@ export const createLead = async (req, res) => {
 export const getLeads = async (req, res) => {
   try {
     const filter = buildFilterQuery(req.query, req.user);
+    console.log("Fetching leads with filter:", filter);
 
     const leads = await Lead.find(filter)
       .populate("assignedTo", "name email")
@@ -44,6 +49,8 @@ export const getLeads = async (req, res) => {
       success: true,
       data: leads,
     });
+
+    console.log("Leads fetched successfully. Count:", leads.length);
   } catch (error) {
     res.status(500).json({
       success: false,
