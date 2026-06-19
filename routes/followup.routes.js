@@ -13,6 +13,6 @@ router.use(verifyToken);
 
 router.post("/", createFollowUp);
 router.get("/", getFollowUps);
-router.patch("/:id/done", getFollowUps);
+router.patch("/:id/done", markFollowUpDone);
 
 export default router;

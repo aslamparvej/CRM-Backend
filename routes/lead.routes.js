@@ -7,7 +7,9 @@ import {
   deleteLead,
   assignLead,
   addNote,
+  getNotes,
   getLeadHistory,
+  getLeadById,
 } from "../controllers/lead.controller.js";
 import { verifyToken } from "../middleware/auth.middleware.js";
 
@@ -18,6 +20,7 @@ router.use(verifyToken);
 // CRUD
 router.post("/", createLead);
 router.get("/", getLeads);
+router.get("/:id", getLeadById);
 router.put("/:id", updateLead);
 router.delete("/:id", deleteLead);
 
@@ -26,6 +29,7 @@ router.patch("/:id/assign", assignLead);
 
 // Notes
 router.post("/:id/notes", addNote);
+router.get("/:id/notes", getNotes);
 
 // History
 router.get("/:id/history", getLeadHistory);

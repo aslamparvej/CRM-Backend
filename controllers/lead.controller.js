@@ -6,7 +6,6 @@ import { buildFilterQuery } from "../services/lead.service.js";
 // Create Lead
 export const createLead = async (req, res) => {
   try {
-    console.log("Creating lead with data:", req.body);
     const lead = await Lead.create({
       ...req.body,
       createdBy: req.user.id,
@@ -18,8 +17,6 @@ export const createLead = async (req, res) => {
       newValue: JSON.stringify(lead),
       changedBy: req.user.id,
     });
-
-    console.log("Lead created successfully:", lead);
 
     res.status(201).json({
       success: true,
@@ -39,7 +36,6 @@ export const createLead = async (req, res) => {
 export const getLeads = async (req, res) => {
   try {
     const filter = buildFilterQuery(req.query, req.user);
-    console.log("Fetching leads with filter:", filter);
 
     const leads = await Lead.find(filter)
       .populate("assignedTo", "name email")
@@ -49,12 +45,29 @@ export const getLeads = async (req, res) => {
       success: true,
       data: leads,
     });
-
-    console.log("Leads fetched successfully. Count:", leads.length);
   } catch (error) {
     res.status(500).json({
       success: false,
       message: error.message || "Error when fetching leads",
+    });
+  }
+};
+
+// Get Lead by Id
+export const getLeadById = async (req, res) => {
+  try {
+    const lead = await Lead.findById(req.params.id).populate(
+      "assignedTo",
+      "name email",
+    );
+    res.status(200).json({
+      success: true,
+      data: lead,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message || "Error when fetching lead",
     });
   }
 };
@@ -161,7 +174,7 @@ export const addNote = async (req, res) => {
   try {
     const note = await Note.create({
       leadId: req.params.id,
-      text: req.body.text,
+      text: req.body.content,
       createdBy: req.user.id,
     });
 
@@ -172,15 +185,55 @@ export const addNote = async (req, res) => {
       changedBy: req.user.id,
     });
 
+    const formattedNote = {
+      id: note._id,
+      leadId: note.leadId,
+      content: note.text,
+      createdBy: note.createdBy._id,
+      createdByName: note.createdBy.name,
+      createdAt: note.createdAt,
+      updatedAt: note.updatedAt,
+    };
+
     res.status(201).json({
       success: true,
       message: "Note added",
-      data: note,
+      data: formattedNote,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: error.message || "Error when add note",
+    });
+    console.log(error);
+  }
+};
+
+// Get Notes
+export const getNotes = async (req, res) => {
+  try {
+    const notes = await Note.find({ leadId: req.params.id })
+      .populate("createdBy", "name email")
+      .sort({ createdAt: -1 });
+
+    const formattedNotes = notes.map((note) => ({
+      id: note._id,
+      leadId: note.leadId,
+      content: note.text,
+      createdBy: note.createdBy?._id,
+      createdByName: note.createdBy?.name || "Unknown User",
+      createdAt: note.createdAt,
+      updatedAt: note.updatedAt,
+    }));
+
+    res.status(200).json({
+      success: true,
+      data: formattedNotes,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
     });
   }
 };
@@ -188,10 +241,18 @@ export const addNote = async (req, res) => {
 // Get Lead History
 export const getLeadHistory = async (req, res) => {
   try {
+    const history = await LeadHistory.find({ leadId: req.params.id })
+      .populate("changedBy", "name email")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      data: history,
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message || "Error wheb getting lead history",
+      message: error.message || "Error when getting lead history",
     });
   }
 };

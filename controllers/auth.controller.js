@@ -4,6 +4,8 @@ import {
   generateAccessToken,
   generateRefreshToken,
 } from "../utils/generateToken.js";
+import { sendEmail } from "../utils/sendEmail.js";
+import crypto from "crypto";
 
 // Register (Admin/Sub-admin only)
 export const register = async (req, res) => {
@@ -54,6 +56,14 @@ export const login = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Invalid credentials",
+      });
+    }
+
+    // If user is inactive
+    if (!user.isActive) {
+      return res.status(403).json({
+        success: false,
+        message: "Account is inactive. Please contact admin.",
       });
     }
 
@@ -123,7 +133,130 @@ export const refreshToken = async (req, res) => {
   } catch (error) {
     res.status(401).json({
       success: false,
-      message: "Inavlid refresh token",
+      message: "Invalid refresh token",
+    });
+  }
+};
+
+// Forgot Password
+export const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(200).json({
+        success: true,
+        message: "If the email exists, OTP has been sent.",
+      });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    user.resetOtp = otp;
+    user.resetOtpExpiresAt = Date.now() + 10 * 60 * 1000;
+    user.isOtpVerified = false;
+
+    await user.save();
+
+    await sendEmail({
+      to: email,
+      subject: "Password Reset OTP",
+      html: `Your OTP is ${otp}`,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "OTP sent successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// Verify OTP
+export const verifyOtp = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid OTP",
+      });
+    }
+
+    if (user.resetOtp !== otp) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid OTP",
+      });
+    }
+
+    const resetToken = crypto.randomBytes(32).toString("hex");
+
+    user.isOtpVerified = true;
+    user.resetToken = resetToken;
+    user.resetTokenExpiresAt = Date.now() + 15 * 60 * 1000;
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "OTP verified successfully",
+      resetToken,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// Reset Password
+export const resetPassword = async (req, res) => {
+  try {
+    const { resetToken, password } = req.body;
+
+    const user = await User.findOne({
+      resetToken,
+      isOtpVerified: true,
+      resetTokenExpiresAt: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid reset request",
+      });
+    }
+
+    user.password = await hashPassword(password);
+
+    user.resetOtp = undefined;
+    user.resetOtpExpiresAt = undefined;
+    user.resetToken = undefined;
+    user.resetTokenExpiresAt = undefined;
+    user.isOtpVerified = false;
+
+     await user.save();
+
+     return res.status(200).json({
+      success: true,
+      message: "Password reset successful",
+     });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
     });
   }
 };

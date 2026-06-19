@@ -28,7 +28,7 @@ router.get(
   getAgents,
 );
 router.put("/:id", verifyToken, authorizedRoles("admin", "sub-admin"), updateUser);
-router.delete("/:id", verifyToken, authorizedRoles("admin"), toggleUserStatus);
+router.patch("/:id/status", verifyToken, authorizedRoles("admin"), toggleUserStatus);
 router.delete("/:id", verifyToken, authorizedRoles("admin"), deleteUser);
 
 export default router;

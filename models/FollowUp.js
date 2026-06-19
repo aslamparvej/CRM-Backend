@@ -8,7 +8,7 @@ const followUpSchema = new mongoose.Schema(
       required: true,
     },
 
-    followUpDate: {
+    scheduledAt: {
       type: Date,
       required: true,
     },
@@ -17,9 +17,15 @@ const followUpSchema = new mongoose.Schema(
       type: String,
     },
 
+    type: {
+      type: String,
+      enum: ["call", "whatsapp", "email", "visit", "sms"],
+      required: true,
+    },
+
     status: {
       type: String,
-      enum: ["pending", "done"],
+      enum: ["pending", "completed", "missed", "rescheduled" ],
       default: "pending",
     },
 
