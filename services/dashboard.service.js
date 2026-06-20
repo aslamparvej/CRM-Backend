@@ -1,10 +1,16 @@
 import Lead from "../models/Lead.js";
+import User from "../models/User.js";
 
 export const getOverviewStats = async (user) => {
   const match = { isDeleted: false };
 
   // Role based filter
   if (user.role === "executive") {
+    match.assignedTo = user.id;
+    match.createdBy = user.id;
+  }
+  if(user.role === "sub-admin"){
+    match.createdBy = user.id;
     match.assignedTo = user.id;
   }
 
@@ -19,6 +25,7 @@ export const getOverviewStats = async (user) => {
     ...match,
     createdAt: { $gte: todayStart, $lte: todayEnd },
   });
+
 
   const statusBreakdown = await Lead.aggregate([
     { $match: match },
@@ -40,11 +47,22 @@ export const getOverviewStats = async (user) => {
     },
   ]);
 
+  const subAdminCount = await User.countDocuments({
+    isActive: true,
+    role: "sub-admin",
+  });
+  const executiveCount = await User.countDocuments({
+    isActive: true,
+    role: "executive",
+  });
+
   return {
     totalLeads,
     todayLeads,
     statusBreakdown,
     categoryBreakdown,
+    subAdminCount,
+    executiveCount
   };
 };
 

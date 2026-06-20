@@ -1,4 +1,7 @@
 import User from "../models/User.js";
+import Lead from "../models/Lead.js";
+import FollowUp from "../models/FollowUp.js";
+
 import {
   getOverviewStats,
   getExecutivePerformance,
@@ -74,6 +77,71 @@ export const todayExecutiveStats = async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message,
+    });
+  }
+};
+
+// Today Leads
+export const getTodayActivities = async (req, res) => {
+  try {
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const [todayLeads, followUps] = await Promise.all([
+      Lead.find({
+        createdAt: {
+          $gte: startOfDay,
+          $lte: endOfDay,
+        },
+      })
+        .populate("assignedTo", "name email")
+        .sort({ createdAt: -1 })
+        .limit(10),
+
+      FollowUp.find({
+        scheduledAt: {
+          $gte: startOfDay,
+          $lte: endOfDay,
+        },
+      })
+        .populate("leadId", "name phone status")
+        .populate("createdBy", "name")
+        .sort({ scheduledAt: 1 })
+        .limit(10),
+    ]);
+
+    const todayFollowUps = followUps.map((followUp) => ({
+      id: followUp._id,
+      leadId: followUp.leadId?._id,
+      leadName: followUp.leadId?.name || "",
+      leadPhone: followUp.leadId?.phone || "",
+      type: followUp.type,
+      scheduledAt: followUp.scheduledAt,
+      note: followUp.note,
+      status: followUp.status,
+      completedAt: followUp.completedAt,
+      createdBy: followUp.createdBy?._id || "",
+      createdByName: followUp.createdBy?.name || "",
+      createdAt: followUp.createdAt,
+    }));
+
+    return res.status(200).json({
+      success: true,
+      message: "Fetch today's activity successcfully ",
+      data: {
+        todayLeads,
+        todayFollowUps,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch today's activities",
     });
   }
 };
