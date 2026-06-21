@@ -62,6 +62,7 @@ export const getFollowUps = async (req, res) => {
 
     const filter = {};
     if (status) filter.status = status;
+    filter.createdBy = req.user.role;
 
     const followUps = await FollowUp.find(filter)
       .populate("leadId", "name phone")

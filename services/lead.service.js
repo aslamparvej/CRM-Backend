@@ -6,9 +6,10 @@ export const buildFilterQuery = (query, user) => {
   let filter = { isDeleted: false };
 
   // Role-based filter
-  if (user.role == "agent") {
-    filter.assignedTo = user.id;
+  if (user.role == "executive") {
+    filter.$or = [{ createdBy: user.id }, { assignedTo: user.id }];
   }
+
 
   if (status) filter.status = status;
   if (category) filter.category = category;
