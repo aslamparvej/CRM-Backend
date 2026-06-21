@@ -35,7 +35,7 @@ export const createLead = async (req, res) => {
 // Get Lead (with filters)
 export const getLeads = async (req, res) => {
   try {
-    const filter = buildFilterQuery(req.query, req.user);
+    const filter = await buildFilterQuery(req.query, req.user);
 
     const leads = await Lead.find(filter)
       .populate("assignedTo", "name email")
