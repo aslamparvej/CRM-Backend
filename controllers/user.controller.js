@@ -1,4 +1,5 @@
 import User from "../models/User.js";
+import Lead from "../models/Lead.js";
 import { sendEmail } from "../utils/sendEmail.js";
 import { hashPassword, comparePassword } from "../utils/hash.js";
 
@@ -62,6 +63,8 @@ export const createUser = async (req, res) => {
 // Get all users
 export const getUsers = async (req, res) => {
   try {
+    const { role, search, page = 1, limit = 20 } = req.query;
+
     let filter = {
       _id: { $ne: req.user.id }, // exclude logged-in user
     };
@@ -73,17 +76,60 @@ export const getUsers = async (req, res) => {
       };
     }
 
-    const users = await User.find(filter)
-      .select("-password")
-      .populate("createdBy", "name email");
+    // Filter by role
+    if (role) filter.role = role;
+    // Search by name and email
+    if (search) {
+      filter.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+      ];
+    }
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const [users, total] = await Promise.all([
+      User.find(filter)
+        .select("-password")
+        .populate("createdBy", "name email")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(Number(limit)),
+      User.countDocuments(filter),
+    ]);
+
+    const usersWithStats = await Promise.all(
+      users.map(async (user) => {
+        const [totalCreatedLeads, totalAssignedLeads, totalCreatedUsers] =
+          await Promise.all([
+            Lead.countDocuments({ createdBy: user._id }),
+            Lead.countDocuments({ assignedTo: user._id }),
+            user.role === "sub-admin"
+              ? User.countDocuments({ createdBy: user._id })
+              : 0,
+          ]);
+        return {
+          ...user.toObject(),
+          totalLeads: totalCreatedLeads + totalAssignedLeads,
+          totalCreatedLeads,
+          totalAssignedLeads,
+          totalUsers: totalCreatedUsers,
+        };
+      }),
+    );
 
     res.status(200).json({
       success: true,
       message: "Users fetched successfully",
-      count: users.length,
-      data: users,
+      data: usersWithStats,
+      pagination: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.ceil(total / Number(limit)),
+      },
     });
   } catch (error) {
+    console.log(error);
     res.status(500).json({
       success: false,
       message: error.message,
