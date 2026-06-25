@@ -1,5 +1,6 @@
 import User from "../models/User.js";
 import Lead from "../models/Lead.js";
+import FollowUp from "../models/FollowUp.js";
 import { sendEmail } from "../utils/sendEmail.js";
 import { hashPassword, comparePassword } from "../utils/hash.js";
 
@@ -166,7 +167,11 @@ export const getAgents = async (req, res) => {
 // Get Single User
 export const getUser = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).select("-password");
+    const userId = req.params.id;
+    
+    const user = await User.findById(userId)
+      .select("-password")
+      .populate("createdBy", "name email");
 
     if (!user) {
       return res.status(404).json({
@@ -175,15 +180,50 @@ export const getUser = async (req, res) => {
       });
     }
 
-    res.status(200).json({
+    // Leads created by OR assigned to this user
+    const leadFilter = {
+      $or: [{ createdBy: userId }, { assignedTo: userId }],
+    };
+
+    const [leads, totalLeads, followUps] = await Promise.all([
+      Lead.find(leadFilter)
+        .populate("assignedTo", "name email role")
+        .populate("createdBy", "name email role")
+        .sort({ createdAt: -1 }),
+
+      Lead.countDocuments(leadFilter),
+
+      FollowUp.find({
+        createdBy: userId,
+      })
+        .populate("leadId", "name phone")
+        .sort({ followUpDate: -1 }),
+    ]);
+
+    const response = {
       success: true,
-      data: user,
-    });
+      data: {
+        ...user.toObject(),
+        totalLeads,
+        leads,
+        followUpCount: followUps.length,
+        followUps,
+      },
+    };
+
+    // Only return creator information for Sub-admin
+    if (user.role !== "sub-admin") {
+      delete response.data.createdBy;
+    }
+
+    res.status(200).json(response);
   } catch (error) {
     res.status(500).json({
       success: false,
       message: error.message,
     });
+
+    console.log(error.message)
   }
 };
 
