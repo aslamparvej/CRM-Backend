@@ -256,3 +256,26 @@ export const getLeadHistory = async (req, res) => {
     });
   }
 };
+
+// Add Lead History
+export const addLeadHostory = async (req, res) => {
+  try {
+    const hostory = await LeadHistory.create({
+      leadId: req.params.id,
+      action: req.body.action,
+      changedBy: req.user.id,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "History created",
+      data: hostory,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+    console.log(error.message)
+  }
+};

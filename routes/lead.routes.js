@@ -9,6 +9,7 @@ import {
   addNote,
   getNotes,
   getLeadHistory,
+  addLeadHostory,
   getLeadById,
 } from "../controllers/lead.controller.js";
 import { verifyToken } from "../middleware/auth.middleware.js";
@@ -33,5 +34,6 @@ router.get("/:id/notes", getNotes);
 
 // History
 router.get("/:id/history", getLeadHistory);
+router.post("/:id/history", addLeadHostory);
 
 export default router;
