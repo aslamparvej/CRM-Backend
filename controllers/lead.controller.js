@@ -3,6 +3,8 @@ import Note from "../models/Note.js";
 import LeadHistory from "../models/LeadHistory.js";
 import { buildFilterQuery } from "../services/lead.service.js";
 
+import { notifyLeadAssigned } from "../services/notification.service.js";
+
 // Create Lead
 export const createLead = async (req, res) => {
   try {
@@ -155,6 +157,9 @@ export const assignLead = async (req, res) => {
       newValue: assignedTo,
       changedBy: req.user.id,
     });
+
+    // Creating notification
+    notifyLeadAssigned(lead, assignedTo);
 
     res.status(200).json({
       success: true,
