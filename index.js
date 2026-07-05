@@ -12,6 +12,7 @@ import leadRoutes from "./routes/lead.routes.js";
 import followUpRoutes from "./routes/followup.routes.js";
 import dashboardRoutes from "./routes/dashboard.routes.js";
 import notificationRoutes from "./routes/notification.routes.js";
+import leadStatusRoutes from "./routes/leadStatus.routes.js";
 
 dotenv.config();
 const app = express();
@@ -28,6 +29,8 @@ app.use("/api/leads", leadRoutes);
 app.use("/api/followups", followUpRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/notifications", notificationRoutes);
+
+app.use("/api/statuses", leadStatusRoutes);
 
 const PORT = process.env.PORT || 5000;
 // Create a server
