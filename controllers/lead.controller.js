@@ -41,6 +41,7 @@ export const getLeads = async (req, res) => {
 
     const leads = await Lead.find(filter)
       .populate("assignedTo", "name email")
+      .populate("status", "name")
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -61,7 +62,7 @@ export const getLeadById = async (req, res) => {
     const lead = await Lead.findById(req.params.id).populate(
       "assignedTo",
       "name email",
-    );
+    ).populate("status", "name");
     res.status(200).json({
       success: true,
       data: lead,
@@ -174,6 +175,40 @@ export const assignLead = async (req, res) => {
   }
 };
 
+// Assign Leads
+export const updateStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+
+    const lead = await Lead.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true },
+    );
+    await LeadHistory.create({
+      leadId: lead._id,
+      action: "updated_status",
+      newValue: status,
+      changedBy: req.user.id,
+    });
+
+    // Creating notification
+    // notifyLeadAssigned(lead, assignedTo);
+
+    res.status(200).json({
+      success: true,
+      message: "Update lead status successfully.",
+      data: lead,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+    console.log(error);
+  }
+};
+
 // Add Note
 export const addNote = async (req, res) => {
   try {
@@ -281,6 +316,6 @@ export const addLeadHostory = async (req, res) => {
       success: false,
       message: error.message,
     });
-    console.log(error.message)
+    console.log(error.message);
   }
 };

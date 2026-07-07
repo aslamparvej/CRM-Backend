@@ -8,7 +8,11 @@ const leadSchema = new mongoose.Schema(
     alternatePhone: { type: String },
     address: { type: String },
 
-    status: { type: String, default: "New" },
+    status: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "LeadStatus",
+      default: null,
+    },
     priority: { type: String, default: "medium" },
     category: { type: String, default: "General" },
     source: { type: String, default: "manual" },

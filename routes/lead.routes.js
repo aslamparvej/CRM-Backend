@@ -6,6 +6,7 @@ import {
   updateLead,
   deleteLead,
   assignLead,
+  updateStatus,
   addNote,
   getNotes,
   getLeadHistory,
@@ -27,6 +28,7 @@ router.delete("/:id", deleteLead);
 
 // Assign
 router.patch("/:id/assign", assignLead);
+router.patch("/:id/status", updateStatus);
 
 // Notes
 router.post("/:id/notes", addNote);
