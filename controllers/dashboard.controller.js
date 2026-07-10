@@ -90,14 +90,36 @@ export const getTodayActivities = async (req, res) => {
     const endOfDay = new Date();
     endOfDay.setHours(23, 59, 59, 999);
 
+    let todayLeadsFilter = {
+      isDeleted: { $ne: true },
+      createdAt: {
+        $gte: startOfDay,
+        $lte: endOfDay,
+      },
+    };
+    if (req.user.role === "executive") {
+      todayLeadsFilter.$or = [
+        { createdBy: req.user.id },
+        { assignedTo: req.user.id },
+      ];
+    }
+
+    if (req.user.role === "sub-admin") {
+      // Find users created by this sub-admin
+      const users = await User.find({ createdBy: req.user.id }, "_id");
+
+      const userIds = users.map((u) => u._id);
+
+      todayLeadsFilter.createdBy = {
+        $in: [req.user.id, ...userIds],
+      };
+    }
+
     const [todayLeads, followUps] = await Promise.all([
-      Lead.find({
-        createdAt: {
-          $gte: startOfDay,
-          $lte: endOfDay,
-        },
-      })
+      Lead.find(todayLeadsFilter)
         .populate("assignedTo", "name email")
+        .populate("status", "name")
+        .populate("createdBy", "name email")
         .sort({ createdAt: -1 })
         .limit(10),
 

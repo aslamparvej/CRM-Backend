@@ -69,6 +69,7 @@ export const getUsers = async (req, res) => {
     let filter = {
       _id: { $ne: req.user.id }, // exclude logged-in user
     };
+    // let filter = {};
 
     // Sub-admin sees only created agents
     if (req.user.role === "sub-admin") {

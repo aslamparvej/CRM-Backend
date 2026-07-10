@@ -21,6 +21,7 @@ export const buildLeadFilter = async (user) => {
 
     match.$or = [
         {createdBy: user.id},
+        {assignedTo: user.id},
         {createdBy: {$in: executiveIds}},
         {assignedTo: {$in: executiveIds}},
     ];

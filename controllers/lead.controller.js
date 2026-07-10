@@ -13,6 +13,11 @@ export const createLead = async (req, res) => {
       createdBy: req.user.id,
     });
 
+    await lead.populate([
+      { path: "assignedTo", select: "name email" },
+      { path: "status", select: "name" },
+    ]);
+
     await LeadHistory.create({
       leadId: lead._id,
       action: "Created",
@@ -59,10 +64,11 @@ export const getLeads = async (req, res) => {
 // Get Lead by Id
 export const getLeadById = async (req, res) => {
   try {
-    const lead = await Lead.findById(req.params.id).populate(
-      "assignedTo",
-      "name email",
-    ).populate("status", "name");
+    const lead = await Lead.findById(req.params.id)
+      .populate("assignedTo", "name email")
+      .populate("status", "name")
+      .populate("createdBy", "name email");
+
     res.status(200).json({
       success: true,
       data: lead,
@@ -217,6 +223,8 @@ export const addNote = async (req, res) => {
       text: req.body.content,
       createdBy: req.user.id,
     });
+
+    await note.populate("createdBy", "name email");
 
     await LeadHistory.create({
       leadId: req.params.id,
