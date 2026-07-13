@@ -4,10 +4,35 @@ import Lead from "../models/Lead.js";
 import FollowUp from "../models/FollowUp.js";
 import LeadHistory from "../models/LeadHistory.js";
 
+import { ACTIVITY } from "../constants/activity.constants.js";
+import { logActivity } from "../utils/activityLogger.js";
+
 // Create Follow Up
 export const createFollowUp = async (req, res) => {
   try {
     const { leadId, scheduledAt, note, type } = req.body;
+
+    if (!leadId || !scheduledAt || !type) {
+      return res.status(400).json({
+        success: false,
+        message: "Lead, schedule date and type are required.",
+      });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(leadId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid lead ID.",
+      });
+    }
+
+    const lead = await Lead.findById(leadId, "name");
+    if (!lead) {
+      return res.status(404).json({
+        success: false,
+        message: "Lead not found.",
+      });
+    }
 
     const followUp = await FollowUp.create({
       leadId,
@@ -37,10 +62,30 @@ export const createFollowUp = async (req, res) => {
     };
 
     await LeadHistory.create({
-      leadId: leadId,
+      leadId: lead._id,
       action: "follow_up",
-      newValue: JSON.stringify(formattedFollowUp),
+      newValue: JSON.stringify({
+        type: followUp.type,
+        scheduledAt: followUp.scheduledAt,
+        status: followUp.status,
+      }),
       changedBy: req.user.id,
+    });
+
+    // Create user activity log
+    await logActivity({
+      req,
+      module: "FollowUp",
+      action: ACTIVITY.FOLLOWUP.CREATE,
+      targetId: followUp._id,
+      targetName: lead.name,
+      description: `Created a ${followUp.type} follow-up for ${lead.name}`,
+      metadata: {
+        leadId: lead._id,
+        followUpId: followUp._id,
+        type: followUp.type,
+        scheduledAt: followUp.scheduledAt,
+      },
     });
 
     res.status(201).json({
@@ -49,6 +94,7 @@ export const createFollowUp = async (req, res) => {
       data: formattedFollowUp,
     });
   } catch (error) {
+    console.error(error);
     res.status(500).json({
       success: false,
       message: error.message || "Error when creating follow-up",
@@ -272,6 +318,13 @@ export const updateFollowUp = async (req, res) => {
       });
     }
 
+    const oldData = {
+      scheduledAt: followUp.scheduledAt,
+      type: followUp.type,
+      note: followUp.note,
+      status: followUp.status,
+    };
+
     // Update Follow-Up
     followUp.scheduledAt = scheduledAt || followUp.scheduledAt;
     followUp.note = note || followUp.note;
@@ -279,6 +332,50 @@ export const updateFollowUp = async (req, res) => {
     followUp.status = "rescheduled";
 
     await followUp.save();
+
+    // Creating user activity log
+    await logActivity({
+      req,
+      module: "FollowUp",
+      action: ACTIVITY.FOLLOWUP.UPDATE,
+      targetId: followUp._id,
+      targetName: followUp.leadId?.name,
+      description: `Updated follow-up for ${followUp.leadId?.name}`,
+      metadata: {
+        leadId: followUp.leadId?._id,
+        followUpId: followUp._id,
+        old: {
+          scheduledAt: oldData.scheduledAt,
+          type: oldData.type,
+          note: oldData.note,
+          status: oldData.status,
+        },
+        new: {
+          scheduledAt: followUp.scheduledAt,
+          type: followUp.type,
+          note: followUp.note,
+          status: followUp.status,
+        },
+      },
+    });
+
+    await LeadHistory.create({
+      leadId: followUp.leadId._id,
+      action: "follow_up_updated",
+      previousValue: JSON.stringify({
+        scheduledAt: oldData.scheduledAt,
+        type: oldData.type,
+        note: oldData.note,
+        status: oldData.status,
+      }),
+      newValue: JSON.stringify({
+        scheduledAt: followUp.scheduledAt,
+        type: followUp.type,
+        note: followUp.note,
+        status: followUp.status,
+      }),
+      changedBy: req.user.id,
+    });
 
     const formattedFollowUp = {
       id: followUp._id,
@@ -304,7 +401,7 @@ export const updateFollowUp = async (req, res) => {
     console.error(error);
     res.status(500).json({
       success: false,
-      message: error.message || "Error when updating follow-up",
+      message: error.message,
     });
   }
 };

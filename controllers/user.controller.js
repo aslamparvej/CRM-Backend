@@ -26,7 +26,7 @@ export const createUser = async (req, res) => {
       email,
       password: hashedPassword,
       role,
-      agentType,
+      designation,
       createdBy: req.user.id,
     });
 
@@ -41,6 +41,7 @@ export const createUser = async (req, res) => {
         <p><strong>Email:</strong> ${email}</p>
         <p><strong>Password:</strong> ${password}</p>
         <p><strong>Role:</strong> ${role}</p>
+        <p><strong>Designation:</strong> ${designation}</p>
 
         <br/>
 

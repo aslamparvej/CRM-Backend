@@ -3,6 +3,9 @@ import Note from "../models/Note.js";
 import LeadHistory from "../models/LeadHistory.js";
 import { buildFilterQuery } from "../services/lead.service.js";
 
+import { ACTIVITY } from "../constants/activity.constants.js";
+import { logActivity } from "../utils/activityLogger.js";
+
 import { notifyLeadAssigned } from "../services/notification.service.js";
 
 // Create Lead
@@ -18,11 +21,27 @@ export const createLead = async (req, res) => {
       { path: "status", select: "name" },
     ]);
 
+    // Creating Lead History
     await LeadHistory.create({
       leadId: lead._id,
       action: "Created",
       newValue: JSON.stringify(lead),
       changedBy: req.user.id,
+    });
+
+    // Creating User Activity
+    await logActivity({
+      req,
+      module: "Lead",
+      action: ACTIVITY.LEAD.CREATE,
+      targetId: lead._id,
+      targetName: lead.name,
+      description: `Created lead ${lead.name}`,
+      metadata: {
+        mobile: lead.mobile,
+        status: lead.status,
+        assignedTo: lead.assignedTo,
+      },
     });
 
     res.status(201).json({
@@ -31,7 +50,7 @@ export const createLead = async (req, res) => {
       data: lead,
     });
   } catch (error) {
-    console.error("Error when creating lead:", error);
+    console.error(error);
     res.status(500).json({
       success: false,
       message: error.message || "Error when creating lead",
@@ -85,6 +104,7 @@ export const getLeadById = async (req, res) => {
 export const updateLead = async (req, res) => {
   try {
     const lead = await Lead.findById(req.params.id);
+    const oldLead = await Lead.findById(req.params.id);
 
     if (!lead) {
       return res.status(404).json({
@@ -108,6 +128,21 @@ export const updateLead = async (req, res) => {
         changedBy: req.user.id,
       });
     }
+
+    // Creating User Activity
+    await logActivity({
+      req,
+      module: "Lead",
+      action: ACTIVITY.LEAD.UPDATE,
+      targetId: lead._id,
+      targetName: lead.name,
+      description: `Updated lead ${lead.name}`,
+      metadata: {
+        before: oldLead,
+        after: lead,
+      },
+    });
+
     res.status(200).json({
       success: true,
       message: "Lead updated",
@@ -148,7 +183,7 @@ export const deleteLead = async (req, res) => {
   }
 };
 
-// Assign Leads
+// Assign Lead
 export const assignLead = async (req, res) => {
   try {
     const { assignedTo } = req.body;
@@ -158,11 +193,26 @@ export const assignLead = async (req, res) => {
       { assignedTo },
       { new: true },
     );
+
+    // Creating Lead History
     await LeadHistory.create({
       leadId: lead._id,
       action: "assigned",
       newValue: assignedTo,
       changedBy: req.user.id,
+    });
+
+    // Creating User Activity
+    await logActivity({
+      req,
+      module: "Lead",
+      action: ACTIVITY.LEAD.ASSIGN,
+      targetId: lead._id,
+      targetName: lead.name,
+      description: `Assigned lead to another user`,
+      metadata: {
+        newAssignedTo: assignedTo,
+      },
     });
 
     // Creating notification
@@ -174,6 +224,7 @@ export const assignLead = async (req, res) => {
       data: lead,
     });
   } catch (error) {
+    console.error(error);
     res.status(500).json({
       success: false,
       message: error.message || "Error when asssig lead",
@@ -181,56 +232,118 @@ export const assignLead = async (req, res) => {
   }
 };
 
-// Assign Leads
+// Update Lead Status
 export const updateStatus = async (req, res) => {
   try {
     const { status } = req.body;
 
-    const lead = await Lead.findByIdAndUpdate(
-      req.params.id,
-      { status },
-      { new: true },
-    );
+    // Get lead with current status
+    const lead = await Lead.findById(req.params.id).populate("status", "name");
+    if (!lead) {
+      return res.status(404).json({
+        success: false,
+        message: "Lead not found.",
+      });
+    }
+
+    const oldStatus = lead.status;
+
+    // Update status
+    lead.status = status;
+    await lead.save();
+
+    // Populate new status
+    await lead.populate("status", "name");
+
+    // Creating Lead History
     await LeadHistory.create({
       leadId: lead._id,
       action: "updated_status",
-      newValue: status,
+      oldValue: oldStatus._id,
+      newValue: lead.status._id,
       changedBy: req.user.id,
     });
 
-    // Creating notification
-    // notifyLeadAssigned(lead, assignedTo);
+    // Creating user activity
+    await logActivity({
+      req,
+      module: "Lead",
+      action: ACTIVITY.LEAD.STATUS,
+      targetId: lead._id,
+      targetName: lead.name,
+      description: `Changed status from ${oldStatus.name} to ${lead.status.name}`,
+      metadata: {
+        oldStatus: {
+          id: oldStatus._id,
+          name: oldStatus.name,
+        },
+        newStatus: {
+          id: lead.status._id,
+          name: lead.status.name,
+        },
+      },
+    });
 
     res.status(200).json({
       success: true,
-      message: "Update lead status successfully.",
+      message: "Lead status updated successfully.",
       data: lead,
     });
   } catch (error) {
+    console.error(error);
     res.status(500).json({
       success: false,
       message: error.message,
     });
-    console.log(error);
   }
 };
 
 // Add Note
 export const addNote = async (req, res) => {
   try {
+    const lead = await Lead.findById(req.params.id, "name");
+    if (!lead) {
+      return res.status(404).json({
+        success: false,
+        message: "Lead not found.",
+      });
+    }
+
+    // Creating note
     const note = await Note.create({
-      leadId: req.params.id,
+      leadId: lead._id,
       text: req.body.content,
       createdBy: req.user.id,
     });
-
     await note.populate("createdBy", "name email");
 
+    const { content } = req.body;
+    if (!content?.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Note content is required.",
+      });
+    }
     await LeadHistory.create({
       leadId: req.params.id,
       action: "note_added",
-      newValue: req.body.text,
+      newValue: req.body.content,
       changedBy: req.user.id,
+    });
+
+    // Creating User Activity
+    await logActivity({
+      req,
+      module: "Note",
+      action: ACTIVITY.NOTE.CREATE,
+      targetId: note._id,
+      targetName: lead?.name,
+      description: `Added a note to lead "${lead?.name}"`,
+      metadata: {
+        leadId: lead?._id,
+        noteId: note._id,
+        content: note.text,
+      },
     });
 
     const formattedNote = {
@@ -245,15 +358,15 @@ export const addNote = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: "Note added",
+      message: "Note added successfully.",
       data: formattedNote,
     });
   } catch (error) {
+    console.error(error);
     res.status(500).json({
       success: false,
-      message: error.message || "Error when add note",
+      message: error.message,
     });
-    console.log(error);
   }
 };
 

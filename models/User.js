@@ -32,8 +32,8 @@ const userSchema = new mongoose.Schema(
       required: true,
     },
 
-    agentType: {
-      type: String, // telecaller, office boy, etc.
+    designation: {
+      type: String, // team lead, telecaller, office boy, etc.
       default: null,
     },
 
