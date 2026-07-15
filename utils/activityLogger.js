@@ -11,7 +11,7 @@ export const logActivity = async ({
 }) => {
   try {
     await createActivity({
-      user: req.user.id,
+      user: req?.user?.id,
       module,
       action,
       targetId,

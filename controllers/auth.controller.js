@@ -7,6 +7,9 @@ import {
 import { sendEmail } from "../utils/sendEmail.js";
 import crypto from "crypto";
 
+import { ACTIVITY } from "../constants/activity.constants.js";
+import { logActivity } from "../utils/activityLogger.js";
+
 // Register (Admin/Sub-admin only)
 export const register = async (req, res) => {
   try {
