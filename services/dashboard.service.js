@@ -1,10 +1,12 @@
 import Lead from "../models/Lead.js";
 import User from "../models/User.js";
-import { buildLeadFilter } from "../helpers/filter.js";
+import FollowUp from "../models/FollowUp.js";
+import { buildLeadFilter, buildFollowupFilter } from "../helpers/filter.js";
 
 export const getOverviewStats = async (user) => {
   try {
     const match = await buildLeadFilter(user);
+    const followupMatch = await buildFollowupFilter();
 
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
@@ -12,10 +14,18 @@ export const getOverviewStats = async (user) => {
     const todayEnd = new Date();
     todayEnd.setHours(23, 59, 59, 999);
 
+    // Getting leads stata
     const totalLeads = await Lead.countDocuments(match);
     const todayLeads = await Lead.countDocuments({
       ...match,
       createdAt: { $gte: todayStart, $lte: todayEnd },
+    });
+
+    // Getting follow-ups stats
+    const totalFollowups = await FollowUp.countDocuments(followupMatch);
+    const todayFollowups = await FollowUp.countDocuments({
+      ...followupMatch,
+      scheduledAt: { $gte: todayStart, $lte: todayEnd },
     });
 
     const statusBreakdown = await Lead.aggregate([
@@ -26,7 +36,37 @@ export const getOverviewStats = async (user) => {
           count: { $sum: 1 },
         },
       },
+      {
+        $lookup: {
+          from: "leadstatuses",
+          localField: "_id",
+          foreignField: "_id",
+          as: "status",
+        },
+      },
+      {
+        $unwind: "$status",
+      },
+      {
+        $project: {
+          _id: 0,
+          statusId: "$status._id",
+          name: "$status.name",
+          color: "$status.color",
+          order: "$status.order",
+          isClosed: "$status.isClosed",
+          count: 1,
+        },
+      },
+      {
+        $sort: {
+          order: 1,
+        },
+      },
     ]);
+    const wonLeads =
+      statusBreakdown.find((status) => status.name === "Won")?.count || 0;
+    const conversionRate = wonLeads === 0 ? 0 : Number(((wonLeads / totalLeads) * 100).toFixed(2));
 
     const categoryBreakdown = await Lead.aggregate([
       { $match: match },
@@ -42,7 +82,6 @@ export const getOverviewStats = async (user) => {
       isActive: true,
       role: "sub-admin",
     };
-
     let executiveFilter = {
       isActive: true,
       role: "executive",
@@ -59,18 +98,24 @@ export const getOverviewStats = async (user) => {
       return {
         totalLeads,
         todayLeads,
+        totalFollowups,
+        todayFollowups,
         statusBreakdown,
         categoryBreakdown,
+        conversionRate
       };
     }
 
     return {
       totalLeads,
       todayLeads,
+      totalFollowups,
+      todayFollowups,
       statusBreakdown,
       categoryBreakdown,
       subAdminCount,
       executiveCount,
+      conversionRate
     };
   } catch (error) {
     console.error("Error fetching overview stats:", error);
