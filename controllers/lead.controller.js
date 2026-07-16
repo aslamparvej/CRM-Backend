@@ -18,7 +18,8 @@ export const createLead = async (req, res) => {
 
     await lead.populate([
       { path: "assignedTo", select: "name email" },
-      { path: "status", select: "name" },
+      { path: "createdBy", select: "name email" },
+      { path: "status", select: "name color" },
     ]);
 
     // Creating Lead History
@@ -65,7 +66,8 @@ export const getLeads = async (req, res) => {
 
     const leads = await Lead.find(filter)
       .populate("assignedTo", "name email")
-      .populate("status", "name")
+      .populate("createdBy", "name email")
+      .populate("status", "name color")
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -85,7 +87,7 @@ export const getLeadById = async (req, res) => {
   try {
     const lead = await Lead.findById(req.params.id)
       .populate("assignedTo", "name email")
-      .populate("status", "name")
+      .populate("status", "name color")
       .populate("createdBy", "name email");
 
     res.status(200).json({
@@ -151,7 +153,7 @@ export const updateLead = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message || "Error when updating lead",
+      message: error.message,
     });
   }
 };
@@ -426,6 +428,47 @@ export const addLeadHostory = async (req, res) => {
       action: req.body.action,
       changedBy: req.user.id,
     });
+
+    const lead = await Lead.findById(req.params.id);
+    // Creating User Activity
+    if (
+      req.body.action === "call_made" ||
+      req.body.action === "message_send" ||
+      req.body.action === "email_send"
+    ) {
+      let description = "";
+      let activityAction = "";
+
+      switch (req.body.action) {
+        case "call_made":
+          activityAction = ACTIVITY.COMMUNICATION.CALL;
+          description = `Called lead "${lead.name}"`;
+          break;
+
+        case "message_send":
+          activityAction = ACTIVITY.COMMUNICATION.WHATSAPP;
+          description = `Sent WhatsApp message to "${lead.name}"`;
+          break;
+
+        case "email_send":
+          activityAction = ACTIVITY.COMMUNICATION.EMAIL;
+          description = `Sent email to "${lead.name}"`;
+          break;
+      }
+
+      await logActivity({
+        req,
+        module: "Communication",
+        action: activityAction,
+        targetId: lead._id,
+        targetName: lead.name,
+        description,
+        metadata: {
+          leadId: req.params.id,
+          action: req.body.action,
+        },
+      });
+    }
 
     res.status(201).json({
       success: true,

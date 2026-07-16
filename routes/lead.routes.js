@@ -13,7 +13,7 @@ import {
   addLeadHostory,
   getLeadById,
 } from "../controllers/lead.controller.js";
-import { verifyToken } from "../middleware/auth.middleware.js";
+import { verifyToken, authorizedRoles } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
@@ -23,8 +23,8 @@ router.use(verifyToken);
 router.post("/", createLead);
 router.get("/", getLeads);
 router.get("/:id", getLeadById);
-router.put("/:id", updateLead);
-router.delete("/:id", deleteLead);
+router.put("/:id", authorizedRoles("admin"), updateLead);
+router.delete("/:id", authorizedRoles("admin"), deleteLead);
 
 // Assign
 router.patch("/:id/assign", assignLead);
