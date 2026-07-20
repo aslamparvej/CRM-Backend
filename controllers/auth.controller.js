@@ -81,13 +81,11 @@ export const login = async (req, res) => {
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
 
-    console.log("Auth req", req.user);
     const newReq = {
       user: {
         id: user._id,
       }
     }
-    console.log(newReq);
 
     await logActivity({
       req: newReq,

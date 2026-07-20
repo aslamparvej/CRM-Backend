@@ -25,13 +25,23 @@ const followUpSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["pending", "completed", "missed", "rescheduled" ],
+      enum: ["pending", "completed", "missed", "rescheduled"],
       default: "pending",
     },
 
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
+    },
+
+    reminderSentAt: {
+      type: Date,
+      default: null,
+    },
+
+    overdueNotificationSentAt: {
+      type: Date,
+      default: null,
     },
   },
   { timestamps: true },

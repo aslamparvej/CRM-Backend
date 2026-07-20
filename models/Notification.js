@@ -15,6 +15,7 @@ const notificationSchema = new mongoose.Schema(
         "lead-assigned",
         "lead-reassigned",
         "followup",
+        "followup-reminder",
         "followup-overdue",
         "status-change",
         "note",

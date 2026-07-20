@@ -15,6 +15,9 @@ import notificationRoutes from "./routes/notification.routes.js";
 import leadStatusRoutes from "./routes/leadStatus.routes.js";
 import activityRoutes from "./routes/activity.routes.js";
 
+// Cron Register
+// import "./cron/followupReminder.cron.js";
+
 dotenv.config();
 const app = express();
 
